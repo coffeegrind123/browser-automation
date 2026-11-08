@@ -19,11 +19,11 @@ stop_browser()
 ## Paginated Data Collection
 
 ```
-start_browser(headless=true)
+start_browser()                 # always headed; headless is refused
 navigate("https://site.com/results?page=1")
 
 # Per page:
-#   execute_js("(function(){ ... return items; })()")  ← extract data
+#   execute_js("const items = ...; return items")      ← extract data (blocks with return are fine)
 #   get_interaction_tree()                              ← find "Next" button
 #   click(selector="<next_id>")                        ← paginate
 #   call_tool("wait_for_network", {"timeout": 5})       ← the CLICK needs this
@@ -55,22 +55,21 @@ get_network_logs()              # see full request/response details
 
 ## Multi-Step Wizard / Checkout
 
-Each step loads new content. **Must re-query interaction tree after each step.**
+Each step renders new content, so walk the tree again after each step (new
+elements get new ids; ids of elements that left are `stale_id`).
 
 ```
 # Step 1
 get_interaction_tree()
-fill_form(json={"#name": "John", "#email": "j@d.com"})
+fill_form(form_data={"#name": "John", "#email": "j@d.com"})
 click(selector="<next_id>")
-wait_for_network()
-wait(1)
+wait_for_element(selector="#address")      # the next step's first field
 
-# Step 2 — IDs have changed!
+# Step 2
 get_interaction_tree()
-fill_form(json={"#address": "123 St", "#city": "NYC"})
+fill_form(form_data={"#address": "123 St", "#city": "NYC"})
 click(selector="<next_id>")
-wait_for_network()
-wait(1)
+wait_for_element(selector="#review")
 
 # Step 3 — verify before final submit
 get_interaction_tree()
@@ -84,32 +83,34 @@ wait_for_network(timeout=15)
 Save cookies after login, restore in a new session to skip login.
 
 ```
-# Session 1: Login and save
+# Session 1: log in (by hand if it has 2FA) and save the whole cookie jar
 start_browser()
 # ... login flow ...
-cookies = get_cookies()         # save these
+export_cookies(file_path="~/.sessions/site.json")    # HttpOnly included, file mode 0600
 stop_browser()
 
-# Session 2: Restore
+# Session 2: restore
 start_browser()
-set_cookies(cookies=saved_cookies)
+import_cookies(file_path="~/.sessions/site.json")
 navigate("https://site.com/dashboard")
 stop_browser()
 ```
+
+Or keep a whole profile: `start_browser(user_data_dir="/path/profile")`.
 
 ## Monitoring / Polling
 
 Check a page periodically for changes.
 
 ```
-start_browser(headless=true)
+start_browser()                 # always headed; headless is refused
 navigate(url)
 previous = get_text_content()
 
 # Loop:
 #   wait(60)                    ← poll interval
 #   reload_page()
-#   wait(3)
+#   wait_for_network(timeout=10)
 #   current = get_text_content()
 #   if current != previous → screenshot(), alert, update previous
 
@@ -152,7 +153,8 @@ get_interaction_tree()          # now main page is accessible
 
 ## Iframe Content
 
-Iframes need JS to access their content.
+The interaction tree covers the top document only. Same-origin iframes are
+readable with JS; cross-origin ones are not (the browser forbids it).
 
 ```
 # List iframes
@@ -202,26 +204,28 @@ click(selector="<numeric_id>")
 click(text="Submit Order")
 ```
 
-### Do NOT skip waits after navigation
+### Do NOT add waits after navigation
 ```
-# BAD — element likely not in DOM yet
+# BAD — navigate() already waited for the document and the network
 navigate("https://spa.com")
-get_interaction_tree()          # partial or empty
+wait(3)
+get_interaction_tree()
 
-# GOOD
+# GOOD — and if an SPA renders late, wait for something specific
 navigate("https://spa.com")
-get_interaction_tree()          # complete
+wait_for_element(selector="main [role=list]")
+get_interaction_tree()
 ```
 
-### Do NOT reuse numeric IDs after page changes
+### Do NOT reuse numeric IDs after a navigation
 ```
-# BAD — IDs regenerated on every call
+# BAD
 tree1 = get_interaction_tree()  # id=5 is "Submit"
 navigate(other_page)
-click(selector="5")             # id=5 is now something else!
+click(selector="5")             # fails: stale_id (never a different element)
 
 # GOOD
 navigate(other_page)
-tree2 = get_interaction_tree()  # fresh IDs
+tree2 = get_interaction_tree()  # new ids
 click(selector="<new_id>")
 ```
