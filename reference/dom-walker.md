@@ -2,10 +2,14 @@
 
 ## What get_interaction_tree() Does
 
-Traverses the entire page DOM and extracts every interactive element into
-compact JSON. This is the primary way to understand what you can interact
-with on a page. Skips hidden elements, SVG internals, and redundant nested
-interactive children.
+Traverses the entire page DOM, open shadow roots included, and extracts every
+interactive element into compact JSON. This is the primary way to understand
+what you can interact with on a page. Skips hidden elements, SVG internals, and
+redundant nested interactive children.
+
+It runs in an **isolated JavaScript world**: it reads the same DOM as the page,
+but the page's scripts cannot see it run, and it writes nothing into the DOM.
+The id-to-element map lives in that world too.
 
 ## Output Format
 
@@ -75,16 +79,17 @@ type_text(text="hello", selector="7")  # type by numeric ID
 get_element_text(selector="7")   # read text by numeric ID
 ```
 
-### IDs Are Ephemeral
+### IDs are stable while the element exists
 
-Numeric IDs are assigned fresh on every `get_interaction_tree()` call.
-They are NOT stable across:
-- Page navigations
-- DOM mutations (SPA route changes, AJAX updates)
-- Multiple `get_interaction_tree()` calls
+- An element keeps its id across repeated `get_interaction_tree()` calls.
+- A new element gets a new number, and numbers are never reused, so an old id
+  can never silently point at a different element.
+- After a **navigation** (or when the element leaves the DOM) the id is stale:
+  using it fails with code `stale_id`. Re-walk and use the new id.
 
-**Rule**: Call `get_interaction_tree()`, use the IDs immediately, never
-store them for later.
+**Rule**: re-walk after anything that navigates or re-renders the part of the
+page you are working on. Within one page state, ids from an earlier walk are
+safe to use.
 
 ## When Interaction Tree Is Not Enough
 
@@ -107,13 +112,18 @@ The 96% reduction is real and consistent. Always start with the tree.
 
 ## Troubleshooting
 
-**Empty tree**: Page not loaded. Did you `wait()` after `navigate()`?
+**Empty tree**: an SPA that renders after the network settles. `wait_for_element()`
+on something you expect, then walk again. `navigate()` itself already waits for
+the document and the network.
 
 **Missing elements**: Element may be inside an iframe, created after
 initial load (use `wait_for_element()` first), or hidden with `display:none`.
 
 **Wrong labels**: Label inference picked up adjacent text. Use
 `get_element_attribute(selector="<id>", attribute="outerHTML")` to inspect.
+
+**Link targets**: pass `links=true` to get each link's `h` (a path when
+same-origin). Off by default because it roughly doubles the output.
 
 **Too many elements**: On complex pages, the tree can still be large.
 Use `find_buttons()` or `find_inputs()` to narrow the scope.
