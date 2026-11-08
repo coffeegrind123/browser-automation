@@ -124,14 +124,16 @@ Details: `reference/dom-walker.md`.
 | Visible text | `get_text_content()`, paged: `offset`, `max_chars`; result has `next_offset` |
 | HTML | `get_content()` (large; use sparingly) |
 | One element | `find_element`, `get_element_text`, `get_element_attribute` |
-| Data in one pass | `execute_js(script="return [...document.querySelectorAll('h2')].map(h => h.textContent)")` |
+| Data in one pass | `execute_js(script="return [...document.querySelectorAll('h2')].map(h => h.textContent)")`; `timeout=` (up to 115 s) for scripts that poll or retry |
 | Look at it | `screenshot()` returns the image (≤1024px wide unless `full_resolution=true`); `save_path=` also writes the file and returns a `browser://artifacts/` link |
 | Where am I | `get_page_info()` reads the live document title and URL |
 
 **`execute_js`** takes an expression (`document.title`) or a statement block with `return`
 (run as an async function body, so `await fetch(...)` works). Promises are awaited. It
 runs in the page's own JavaScript world, which the page can in principle observe; the
-dedicated tools run in an isolated world the page cannot see, so prefer them.
+dedicated tools run in an isolated world the page cannot see, so prefer them. A script that
+outlives its `timeout` (default 20 s) keeps running in the page: if it clicks or submits,
+check the page before running it again.
 
 ## Waiting
 
