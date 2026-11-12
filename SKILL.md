@@ -43,6 +43,8 @@ returns `unknown_tool`, the error's hint names the closest real tool.
 
 ## Lifecycle
 
+Read `LEARNINGS.md` first; it holds quirks earlier runs already hit.
+
 ```
 start_browser() → navigate(url) → [work] → stop_browser()
 ```
@@ -256,8 +258,11 @@ server version it applies to.
 
 ## References
 
-- `reference/tools.md`: every tool, with effect, tab support, parameters and summary
-  (generated from the server).
-- `reference/patterns.md`: recipes (login, pagination, wizards, iframes, infinite scroll,
-  polling).
-- `reference/dom-walker.md`: interaction tree internals.
+- Read `LEARNINGS.md` before starting work, and again when a tool behaves unexpectedly:
+  it records site and server quirks already paid for.
+- Read `reference/patterns.md` before a login, pagination, multi-step wizard, iframe,
+  infinite-scroll or polling task.
+- Read `reference/tools.md` when `search_tools` / `describe_tool` leave a tool's
+  parameters, tab support or effect unclear, or to survey every tool in a group.
+- Read `reference/dom-walker.md` when `get_interaction_tree` misses, mislabels or
+  mis-regions elements you can see in a screenshot.
