@@ -171,8 +171,8 @@ batch(steps=[
 ])
 ```
 
-It stops at the first failure (`failed_at`, with that step's error) unless
-`stop_on_error=false`. Nothing is rolled back.
+At most 50 steps per call. It stops at the first failure (`failed_at`, with that step's
+error) unless `stop_on_error=false`. Nothing is rolled back.
 
 ## Slow work: jobs
 
