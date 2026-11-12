@@ -18,8 +18,8 @@ site-specific quirks, timing requirements, or selector patterns.
 
 ## 2026-03-21: React/SPA forms need native value setter in Chrome
 - **Context**: Filling a React-based login form — standard `type_text()` put both values in the same field
-- **Learning**: React inputs don't respond to normal DOM value changes. Use `execute_js` with native setter: `Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value)` then `dispatchEvent(new Event('input', {bubbles: true}))`
-- **Rule**: For React/Vue forms in Chrome, use native value setter via execute_js. For Firefox/Camoufox, use Playwright's `fill()` method instead.
+- **Learning**: React inputs don't respond to normal DOM value changes. Use `execute_javascript` with native setter: `Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value)` then `dispatchEvent(new Event('input', {bubbles: true}))`
+- **Rule**: For React/Vue forms in Chrome, use native value setter via execute_javascript. For Firefox/Camoufox, use Playwright's `fill()` method instead.
 - **Server 0.5.0**: `type_text` now focuses with a trusted click and inserts via CDP `Input.insertText`, which React sees as real input; the native-setter workaround is probably unnecessary. Unverified: use it only if a field still ignores `type_text`.
 
 ## 2026-03-21: Cookie consent banners block all interaction
@@ -41,23 +41,23 @@ site-specific quirks, timing requirements, or selector patterns.
 ## 2026-03-21: get_interaction_tree() can return empty on SPAs
 - **Context**: Vue.js SPA (Vuetify framework) — interaction tree returned `[]`
 - **Learning**: The DOM walker may not find elements in Shadow DOM or dynamically-rendered SPA components. `find_buttons()` and `find_inputs()` use different detection logic and may succeed where the tree fails.
-- **Rule**: If `get_interaction_tree()` returns empty, try `find_buttons()`, `find_inputs()`, or `execute_js` to query the DOM directly.
+- **Rule**: If `get_interaction_tree()` returns empty, try `find_buttons()`, `find_inputs()`, or `execute_javascript` to query the DOM directly.
 
 ## 2026-07-11: low_memory launch flags are Cloudflare-detectable
 - **Context**: Inspecting a site behind Cloudflare Turnstile. `bypass_cloudflare` timed out ("could not solve the checkbox") when the browser was started with `low_memory=true`.
 - **Learning**: `low_memory` adds `--disable-gpu` / software-WebGL flags that anti-bot fingerprinting flags as automation, so the Turnstile never clears. Relaunching WITHOUT `low_memory` (plain `start_browser`) let the checkbox solve on the same site.
 - **Rule**: For any Cloudflare/anti-bot site, launch `start_browser` WITHOUT `low_memory` (accept the higher memory use). Only use `low_memory` on constrained hosts for non-protected pages.
 
-## 2026-07-11: execute_js does NOT await Promises (async returns {})
-- **Context**: Ran an `async` IIFE in `execute_js` (a `fetch()` to grab a favicon) — the tool returned `{}` with no data.
+## 2026-07-11: execute_javascript does NOT await Promises (async returns {})
+- **Context**: Ran an `async` IIFE in `execute_javascript` (a `fetch()` to grab a favicon) — the tool returned `{}` with no data.
 - **Learning**: The wrapper serializes the return value synchronously; an `async` function returns a Promise that serializes to `{}`. `await`/`.then` results never come back.
-- **Rule**: Keep `execute_js` synchronous. For network, either navigate directly to the resource URL and read it from the resulting document, or use a synchronous `XMLHttpRequest` (`xhr.open(..., false)`). Never rely on `async`/`await` inside `execute_js`.
-- **Superseded (server 0.5.0)**: `execute_js` awaits promises and accepts statement blocks with `return` (run as an async body), so `return await fetch(u).then(r => r.text())` works.
+- **Rule**: Keep `execute_javascript` synchronous. For network, either navigate directly to the resource URL and read it from the resulting document, or use a synchronous `XMLHttpRequest` (`xhr.open(..., false)`). Never rely on `async`/`await` inside `execute_javascript`.
+- **Superseded (server 0.5.0)**: `execute_javascript` awaits promises and accepts statement blocks with `return` (run as an async body), so `return await fetch(u).then(r => r.text())` works.
 
 ## 2026-07-11: site-wrapped Turnstile needs a manual form submit after bypass
 - **Context**: `bypass_cloudflare` returned "solved" and the widget showed a green "Success!", but the page stayed on "Verification required" — a site-custom challenge, not the standard CF interstitial.
 - **Learning**: Some sites embed Turnstile in their OWN `<form action="/verify_captcha" method="post">` with a populated hidden `<input name="cf-turnstile-response">` (the solved token, ~700 chars) and a manual "Verify" submit button. `bypass_cloudflare` only solves the checkbox; it does not submit the form, and `click(text="Verify")` may not trigger the submit.
-- **Rule**: After `bypass_cloudflare` shows "Success!" but the page doesn't advance, inspect `document.forms` for a challenge form with a filled `cf-turnstile-response`, then submit it directly: `execute_js("(function(){document.forms[0].submit();return true})()")`.
+- **Rule**: After `bypass_cloudflare` shows "Success!" but the page doesn't advance, inspect `document.forms` for a challenge form with a filled `cf-turnstile-response`, then submit it directly: `execute_javascript("(function(){document.forms[0].submit();return true})()")`.
 
 ## 2026-07-11: static assets often bypass the JS challenge — fetch with curl
 - **Context**: Needed each site's favicon; some sites were Cloudflare-gated on the HTML.
@@ -85,3 +85,7 @@ site-specific quirks, timing requirements, or selector patterns.
 - **Learning**: Three separate defects, all in the server. (1) `navigate`'s docstring promised it would "wait for the page to load" and it did not — `session.navigate()` calls zendriver's `get()`, which returns when the navigation COMMITS, not when anything has rendered. A believed-but-false promise is worse than no promise: the caller reads too early and blames the site. (2) `wait_for_network` compared `len(get_network_logs(100))` against its previous value, and that list is CAPPED at 100 entries — so once a page had made 100 requests the count could never change and it declared idle after one `idle_time` regardless. The failing session shows the tell exactly: "Network idle after 0.6s (**100** requests captured)" — the cap, not a measurement. It defeated the wait precisely on the busy pages that need one. (3) `get_text_content` returning a bare `[chars 0-0 of 0]` is indistinguishable from a page that genuinely has no text, which is why that session went hunting for a consent wall.
 - **Rule**: Fixed in the server (old fork build ≥ `f29626c`). **Do not add a wait after `navigate()`** — it now settles on network idle itself and reports how that ended (`network idle after 0.6s, 246 requests` / `network still active after 10.0s`); `settle=0` restores return-on-commit. Waits belong AFTER a click or an action that starts new traffic, not after a navigation. An empty `get_text_content` now appends the reason (`still loading` / `no body element` / `has markup` → iframe or shadow root / `really is blank`) — read that line before concluding you were blocked. If you still see a bare `[chars 0-0 of 0]` or a request count pinned at exactly 100, the MCP is on an old build: restart it.
 - **Server 0.5.0**: still true, and `navigate` now returns the outcome as fields (`settled`, `document_ready`, `elapsed`, `requests`).
+
+## 2026-11-12: execute_js is now execute_javascript
+- **Context**: An agent-usability lint flagged `execute_js` as a generic verb with a name its description never echoed.
+- **Rule**: Call `execute_javascript`; arguments and behaviour are unchanged. Older transcripts and notes that say `execute_js` mean this tool. Through `call_tool`, `batch` or `jobs` the old name fails with `unknown_tool` and a hint naming the new one. Direct `mcp__browser__execute_js` calls fail at the client because the tool is no longer listed, so restart the MCP server and update any saved permission allowlist that names the old tool.

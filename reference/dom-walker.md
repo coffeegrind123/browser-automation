@@ -95,10 +95,10 @@ safe to use.
 
 | Need | Use instead |
 |------|-------------|
-| Static text | `get_text_content()` or `execute_js()` |
+| Static text | `get_text_content()` or `execute_javascript()` |
 | HTML structure | `get_content()` (sparingly) |
 | Element attributes | `get_element_attribute(selector, attr)` |
-| Computed styles | `execute_js("getComputedStyle(el).property")` |
+| Computed styles | `execute_javascript("getComputedStyle(el).property")` |
 
 ## Token Size Comparison
 

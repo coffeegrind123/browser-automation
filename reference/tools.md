@@ -91,7 +91,7 @@
 
 | Tool | Effect | Tab | Listed | Parameters | Summary |
 |---|---|---|---|---|---|
-| `execute_js` | write | tab | yes | `script`, `timeout?` | Run JavaScript in the page's own context and return its value as JSON. |
+| `execute_javascript` | write | tab | yes | `script`, `timeout?` | Execute JavaScript in the page's own context and return its value as JSON. |
 | `run_security_audit` | read | tab |  | none | Audit the loaded page's client-side security posture. |
 | `screenshot` | read | tab | yes | `save_path?`, `full_resolution?` | Take a screenshot of the visible viewport as an image you can look at directly. |
 | `wait` | read |  |  | `seconds?` | Pause for a fixed number of seconds before the next tool runs. |
