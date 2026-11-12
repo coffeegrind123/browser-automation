@@ -23,7 +23,7 @@ start_browser()                 # always headed; headless is refused
 navigate("https://site.com/results?page=1")
 
 # Per page:
-#   execute_js("const items = ...; return items")      ← extract data (blocks with return are fine)
+#   execute_javascript("const items = ...; return items")      ← extract data (blocks with return are fine)
 #   get_interaction_tree()                              ← find "Next" button
 #   click(selector="<next_id>")                        ← paginate
 #   call_tool("wait_for_network", {"timeout": 5})       ← the CLICK needs this
@@ -122,7 +122,7 @@ stop_browser()
 Use JS to extract structured data from HTML tables.
 
 ```
-execute_js("(function(){
+execute_javascript("(function(){
     var rows = document.querySelectorAll('table tbody tr');
     return Array.from(rows).map(function(row){
         var cells = row.querySelectorAll('td');
@@ -158,14 +158,14 @@ readable with JS; cross-origin ones are not (the browser forbids it).
 
 ```
 # List iframes
-execute_js("(function(){
+execute_javascript("(function(){
     return Array.from(document.querySelectorAll('iframe')).map(function(f,i){
         return {index: i, src: f.src, id: f.id};
     });
 })()")
 
 # Read iframe content
-execute_js("document.querySelectorAll('iframe')[0].contentDocument.body.textContent")
+execute_javascript("document.querySelectorAll('iframe')[0].contentDocument.body.textContent")
 ```
 
 ## Infinite Scroll
@@ -174,10 +174,10 @@ Scroll to bottom repeatedly until no new content loads.
 
 ```
 # Loop:
-#   height = execute_js("document.body.scrollHeight")
+#   height = execute_javascript("document.body.scrollHeight")
 #   scroll(direction="down", amount=height)
 #   wait_for_network(timeout=5)     ← the scroll triggers the lazy load
-#   new_height = execute_js("document.body.scrollHeight")
+#   new_height = execute_javascript("document.body.scrollHeight")
 #   if new_height == height → done (no new content)
 
 get_text_content()              # extract all loaded content

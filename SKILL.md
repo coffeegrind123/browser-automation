@@ -1,7 +1,7 @@
 ---
 name: browser-automation
 description: Browser automation through the zendriver-mcp-next server (browser MCP tools) for browsing, scraping, form filling, testing and security auditing. Drives a real, headed Chrome that pages cannot easily tell is automated (trusted input, no DOM markers, helper code in an isolated world). 19 tools are listed directly (the browse loop plus search_tools, describe_tool, call_tool, batch, jobs); about 80 more (cookies, storage, network logs and mocking, emulation, geolocation/timezone/locale, accessibility, tracing, Lighthouse, screencasts, Cloudflare challenges, security audit) are one search_tools hop away. Every result is structured; every error has a code and a hint. Use when asked to browse, scrape, fill a form, automate a website, check a page, open a browser, take a screenshot, monitor network requests, run a security audit, get past a Cloudflare challenge, or interact with any web page programmatically.
-allowed-tools: mcp__browser__start_browser mcp__browser__stop_browser mcp__browser__get_browser_status mcp__browser__navigate mcp__browser__get_interaction_tree mcp__browser__click mcp__browser__type_text mcp__browser__press_key mcp__browser__get_text_content mcp__browser__screenshot mcp__browser__execute_js mcp__browser__wait_for_element mcp__browser__list_tabs mcp__browser__scroll mcp__browser__search_tools mcp__browser__describe_tool mcp__browser__call_tool mcp__browser__batch mcp__browser__jobs
+allowed-tools: mcp__browser__start_browser mcp__browser__stop_browser mcp__browser__get_browser_status mcp__browser__navigate mcp__browser__get_interaction_tree mcp__browser__click mcp__browser__type_text mcp__browser__press_key mcp__browser__get_text_content mcp__browser__screenshot mcp__browser__execute_javascript mcp__browser__wait_for_element mcp__browser__list_tabs mcp__browser__scroll mcp__browser__search_tools mcp__browser__describe_tool mcp__browser__call_tool mcp__browser__batch mcp__browser__jobs
 when_to_use: "Use when the user wants to browse a website, scrape web content, fill out forms, automate browser interactions, take screenshots, run security audits, or interact with any web page. Examples: 'open this URL', 'scrape that page', 'fill out the form', 'take a screenshot', 'check this website', 'automate the login', 'run a security audit', 'monitor network requests'."
 argument-hint: "[url or task description]"
 context: fork
@@ -22,7 +22,7 @@ as `browser`, so its tools are `mcp__browser__*`. One headed Chrome per server p
 
 ```
 start_browser  stop_browser  get_browser_status  navigate  get_interaction_tree
-click  type_text  press_key  get_text_content  screenshot  execute_js
+click  type_text  press_key  get_text_content  screenshot  execute_javascript
 wait_for_element  list_tabs  scroll
 search_tools  describe_tool  call_tool  batch  jobs
 ```
@@ -73,7 +73,7 @@ Every failure is an error result `{error, code, hint}`. **Follow the hint.** Cod
 | `element_hidden` | no visible box | `scroll_to_element`, or open what reveals it |
 | `tab_not_found` / `tab_forbidden` | bad tab id / another client's tab | `list_tabs` |
 | `invalid_argument` | wrong arguments | fix them as the hint says |
-| `js_error` | your `execute_js` script threw | fix the script |
+| `js_error` | your `execute_javascript` script threw | fix the script |
 | `timeout` / `operation_timeout` | the tool's budget ran out / something inside it gave up | check `get_browser_status`, retry once |
 | `browser_unreachable` | Chrome wedged and was discarded | `start_browser()` |
 | `unknown_tool` | not a tool name | the hint suggests the closest |
@@ -124,11 +124,11 @@ Details: `reference/dom-walker.md`.
 | Visible text | `get_text_content()`, paged: `offset`, `max_chars`; result has `next_offset` |
 | HTML | `get_content()` (large; use sparingly) |
 | One element | `find_element`, `get_element_text`, `get_element_attribute` |
-| Data in one pass | `execute_js(script="return [...document.querySelectorAll('h2')].map(h => h.textContent)")`; `timeout=` (up to 115 s) for scripts that poll or retry |
+| Data in one pass | `execute_javascript(script="return [...document.querySelectorAll('h2')].map(h => h.textContent)")`; `timeout=` (up to 115 s) for scripts that poll or retry |
 | Look at it | `screenshot()` returns the image (≤1024px wide unless `full_resolution=true`); `save_path=` also writes the file and returns a `browser://artifacts/` link |
 | Where am I | `get_page_info()` reads the live document title and URL |
 
-**`execute_js`** takes an expression (`document.title`) or a statement block with `return`
+**`execute_javascript`** takes an expression (`document.title`) or a statement block with `return`
 (run as an async function body, so `await fetch(...)` works). Promises are awaited. It
 runs in the page's own JavaScript world, which the page can in principle observe; the
 dedicated tools run in an isolated world the page cannot see, so prefer them. A script that
