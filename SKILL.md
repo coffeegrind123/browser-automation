@@ -1,14 +1,11 @@
 ---
 name: browser-automation
-description: Browser automation through the zendriver-mcp-next server (browser MCP tools) for browsing, scraping, form filling, testing and security auditing. Drives a real, headed Chrome that pages cannot easily tell is automated (trusted input, no DOM markers, helper code in an isolated world). 19 tools are listed directly (the browse loop plus search_tools, describe_tool, call_tool, batch, jobs); about 80 more (cookies, storage, network logs and mocking, emulation, geolocation/timezone/locale, accessibility, tracing, Lighthouse, screencasts, Cloudflare challenges, security audit) are one search_tools hop away. Every result is structured; every error has a code and a hint. Use when asked to browse, scrape, fill a form, automate a website, check a page, open a browser, take a screenshot, monitor network requests, run a security audit, get past a Cloudflare challenge, or interact with any web page programmatically.
+description: "Browser automation through the zendriver-mcp-next server (browser MCP tools) for browsing, scraping, form filling, testing and security auditing. Drives a real, headed Chrome that pages cannot easily tell is automated (trusted input, no DOM markers, helper code in an isolated world). 19 tools are listed directly (the browse loop plus search_tools, describe_tool, call_tool, batch, jobs); about 100 more (cookies, sessions, storage, dialogs, downloads, network logs and mocking, emulation, accessibility, tracing, Lighthouse, screencasts, Cloudflare, security audit) are one search_tools hop away. Every error has a code and a hint. Use when the user wants to browse, scrape, fill a form, automate a site or a login, check a page, take a screenshot, monitor network requests, run a security audit, get past a Cloudflare challenge, or interact with any web page. Examples: 'open this URL', 'scrape that page', 'fill out the form', 'take a screenshot', 'automate the login'."
 allowed-tools: mcp__browser__start_browser mcp__browser__stop_browser mcp__browser__get_browser_status mcp__browser__navigate mcp__browser__get_interaction_tree mcp__browser__click mcp__browser__type_text mcp__browser__press_key mcp__browser__get_text_content mcp__browser__screenshot mcp__browser__execute_javascript mcp__browser__wait_for_element mcp__browser__list_tabs mcp__browser__scroll mcp__browser__search_tools mcp__browser__describe_tool mcp__browser__call_tool mcp__browser__batch mcp__browser__jobs
-when_to_use: "Use when the user wants to browse a website, scrape web content, fill out forms, automate browser interactions, take screenshots, run security audits, or interact with any web page. Examples: 'open this URL', 'scrape that page', 'fill out the form', 'take a screenshot', 'check this website', 'automate the login', 'run a security audit', 'monitor network requests'."
-argument-hint: "[url or task description]"
-context: fork
 metadata:
   author: coffeegrind123
   version: "2.0"
-  server: "zendriver-mcp-next >= 0.5.0"
+  server: "zendriver-mcp-next > 0.5.0 (main at 6f5bb96 or later; 0.5.0 has the old cookie/session names)"
 ---
 
 # Browser Automation
@@ -79,6 +76,12 @@ Every failure is an error result `{error, code, hint}`. **Follow the hint.** Cod
 | `timeout` / `operation_timeout` | the tool's budget ran out / something inside it gave up | check `get_browser_status`, retry once |
 | `browser_unreachable` | Chrome wedged and was discarded | `start_browser()` |
 | `unknown_tool` | not a tool name | the hint suggests the closest |
+| `ambiguous` | selector or label matches several elements | use an id from the tree or a narrower selector |
+| `dialog_open` | an alert/confirm/prompt blocks the tab | `handle_dialog(accept=...)`, or `set_dialog_policy` |
+| `submit_blocked` | the submit guard stopped a submitting action | ask the person, then `allow_next_submit` and repeat it |
+| `challenge_unsolved` | `bypass_cloudflare` ran out of time | screenshot first; see Cloudflare below |
+| `launch_failed` | Chrome started and died; the message has its reason | fix the cause (display, profile lock, flags) |
+| `not_installed` / `conflict` / `job_not_found` | Lighthouse missing / tracing already in that state / job expired | follow the hint |
 
 ## Seeing the page: get_interaction_tree()
 
@@ -129,6 +132,7 @@ Details: `reference/dom-walker.md`.
 | Data in one pass | `execute_javascript(script="return [...document.querySelectorAll('h2')].map(h => h.textContent)")`; `timeout=` (up to 115 s) for scripts that poll or retry |
 | Look at it | `screenshot()` returns the image (≤1024px wide unless `full_resolution=true`); `save_path=` also writes the file and returns a `browser://artifacts/` link |
 | Where am I | `get_page_info()` reads the live document title and URL |
+| PDF | `save_pdf(save_path=...)`, as Chrome's Print to PDF |
 
 **`execute_javascript`** takes an expression (`document.title`) or a statement block with `return`
 (run as an async function body, so `await fetch(...)` works). Promises are awaited. It
@@ -144,18 +148,32 @@ page load        → nothing; navigate() already settled
 element appears  → wait_for_element(selector, timeout=10, visible=true)   (listed)
 traffic settles  → wait_for_network(timeout=5)   AFTER a click or submit
 one API call     → wait_for_request(url_pattern="api/orders")
+text shows/goes  → wait_for_text(text="Saved", gone=false)
+redirect/route   → wait_for_url(pattern="/dashboard")
+file download    → wait_for_download(url_contains="report")   (list_downloads shows all)
 ```
 
 `wait(seconds)` is the last resort, for animations and rate limits.
 
 ## Tabs
 
-- `new_tab(url)` opens a tab and makes it active; `list_tabs` also shows tabs the page
+- `new_tab(url)` opens a tab and makes it active; `open_tabs(urls=[...])` loads several in
+  parallel without changing the active tab; `list_tabs` also shows tabs the page
   opened itself (popups, `target=_blank`).
 - **Act on another tab without switching:** every page tool takes `tab="tab_2"`:
   `get_text_content(tab="tab_2")`. The active tab stays where it was.
 - `switch_tab(tab_id)`, `close_tab(tab_id)`. Close what you open.
 - Network and console log entries carry their `tab`; pass `tab=` to filter them.
+
+## Dialogs and the submit guard
+
+- An alert, confirm or prompt freezes its tab, popups included, until answered; tools on
+  that tab fail with `dialog_open`. Answer with `handle_dialog(accept=true, prompt_text=...)`,
+  or `set_dialog_policy(policy="accept"|"dismiss")` for every new one (default `manual`).
+  `list_dialogs` shows what appeared and how it was answered.
+- With `ZENDRIVER_MCP_SUBMIT_GUARD=1` on the server, actions that submit a form or press a
+  send/pay/buy/delete-style control fail with `submit_blocked`. Get the person's approval,
+  then `allow_next_submit()` lets exactly one through.
 
 ## Several steps at once: batch
 
@@ -195,7 +213,9 @@ Mock a response → mock_response(url_pattern="*/api/orders", status=200, body="
                                 headers={"Content-Type": "application/json"})
 Fail requests   → fail_requests(url_pattern="*/analytics/*", error_reason="BlockedByClient")
 Rules           → list_interceptions() (with match_count), stop_interception(rule_id?)
-Block / headers → block_urls(patterns=[...]), set_extra_headers(headers={...})
+Response body   → get_response_body(request_id=...)   (id from get_network_logs)
+Block / headers → block_urls(patterns=[...]), block_resources(types=["Image","Font"]),
+                  set_extra_headers(headers={...})
 ```
 
 Interception rules belong to the tab they were created on, and they work together with an
@@ -208,7 +228,8 @@ authenticated proxy.
 - SPAs often keep tokens in `read_local_storage()`, not cookies. Check both, and the URL
   after an OAuth redirect.
 - A persistent login: `start_browser(user_data_dir="/path/profile")`, or log in once and
-  `save_cookies` / `load_cookies`. Recipe: `reference/patterns.md`.
+  `save_session` / `load_session` (cookies plus localStorage of the sites open at save
+  time); `save_cookies` / `load_cookies` move cookies only. Recipe: `reference/patterns.md`.
 
 ## Cloudflare
 

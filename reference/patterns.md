@@ -78,20 +78,22 @@ click(selector="<submit_id>")
 wait_for_network(timeout=15)
 ```
 
-## Cookie-Based Session Persistence
+## Session Persistence
 
-Save cookies after login, restore in a new session to skip login.
+Save the logged-in state after login, restore it in a new session to skip login.
+`save_session` keeps cookies plus localStorage (many SPAs keep the token there);
+`save_cookies` keeps cookies only.
 
 ```
-# Session 1: log in (by hand if it has 2FA) and save the whole cookie jar
+# Session 1: log in (by hand if it has 2FA) and save the state
 start_browser()
-# ... login flow ...
-save_cookies(file_path="~/.sessions/site.json")    # HttpOnly included, file mode 0600
+# ... login flow; keep the site open, localStorage is saved only for open sites ...
+save_session(file_path="~/.sessions/site.json")    # HttpOnly cookies included, file mode 0600
 stop_browser()
 
 # Session 2: restore
 start_browser()
-load_cookies(file_path="~/.sessions/site.json")
+load_session(file_path="~/.sessions/site.json")    # localStorage lands before the site's scripts
 navigate("https://site.com/dashboard")
 stop_browser()
 ```
