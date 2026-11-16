@@ -203,12 +203,12 @@ authenticated proxy.
 
 ## Auth and state
 
-- `get_cookies()` (this page's cookies, HttpOnly included), `set_cookie(name, value, ...)`;
-  whole browser: `list_all_cookies`, `export_cookies(file_path)`, `import_cookies(file_path)`.
-- SPAs often keep tokens in `get_local_storage()`, not cookies. Check both, and the URL
+- `read_page_cookies()` (this page's cookies, HttpOnly included), `write_cookie(name, value, ...)`;
+  whole browser: `list_all_cookies`, `save_cookies(file_path)`, `load_cookies(file_path)`.
+- SPAs often keep tokens in `read_local_storage()`, not cookies. Check both, and the URL
   after an OAuth redirect.
 - A persistent login: `start_browser(user_data_dir="/path/profile")`, or log in once and
-  `export_cookies` / `import_cookies`. Recipe: `reference/patterns.md`.
+  `save_cookies` / `load_cookies`. Recipe: `reference/patterns.md`.
 
 ## Cloudflare
 

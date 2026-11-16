@@ -86,12 +86,12 @@ Save cookies after login, restore in a new session to skip login.
 # Session 1: log in (by hand if it has 2FA) and save the whole cookie jar
 start_browser()
 # ... login flow ...
-export_cookies(file_path="~/.sessions/site.json")    # HttpOnly included, file mode 0600
+save_cookies(file_path="~/.sessions/site.json")    # HttpOnly included, file mode 0600
 stop_browser()
 
 # Session 2: restore
 start_browser()
-import_cookies(file_path="~/.sessions/site.json")
+load_cookies(file_path="~/.sessions/site.json")
 navigate("https://site.com/dashboard")
 stop_browser()
 ```
