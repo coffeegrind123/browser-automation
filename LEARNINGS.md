@@ -29,9 +29,9 @@ site-specific quirks, timing requirements, or selector patterns.
 - **Server 0.5.0**: no longer silent. A covered target fails with `element_obscured` and names the covering element.
 
 ## 2026-03-21: JWT tokens in localStorage, not cookies
-- **Context**: After an OpenID login to a Vue SPA, `get_cookies()` returned empty but the app was authenticated
+- **Context**: After an OpenID login to a Vue SPA, `read_page_cookies()` returned empty but the app was authenticated
 - **Learning**: The SPA stored a JWT in `localStorage.token` and sent it via `Authorization: Bearer` header. Many modern apps do this — cookies are only for server-rendered sites.
-- **Rule**: When investigating auth, check both `get_cookies()` AND `get_local_storage()`. Look for `token`, `jwt`, `access_token` keys.
+- **Rule**: When investigating auth, check both `read_page_cookies()` AND `read_local_storage()`. Look for `token`, `jwt`, `access_token` keys.
 
 ## 2026-03-21: Auth tokens can appear in redirect URL params
 - **Context**: After completing an OpenID flow, the app redirected to `/return?token=eyJ...`
