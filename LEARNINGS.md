@@ -19,7 +19,7 @@ site-specific quirks, timing requirements, or selector patterns.
 ## 2026-03-21: React/SPA forms need native value setter in Chrome
 - **Context**: Filling a React-based login form — standard `type_text()` put both values in the same field
 - **Learning**: React inputs don't respond to normal DOM value changes. Use `execute_javascript` with native setter: `Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value)` then `dispatchEvent(new Event('input', {bubbles: true}))`
-- **Rule**: For React/Vue forms in Chrome, use native value setter via execute_javascript. For Firefox/Camoufox, use Playwright's `fill()` method instead.
+- **Rule**: Use `type_text` first. Fall back to the native setter via `execute_javascript` only if a React/Vue field still ignores it.
 - **Server 0.5.0**: `type_text` now focuses with a trusted click and inserts via CDP `Input.insertText`, which React sees as real input; the native-setter workaround is probably unnecessary. Unverified: use it only if a field still ignores `type_text`.
 
 ## 2026-03-21: Cookie consent banners block all interaction
@@ -51,13 +51,13 @@ site-specific quirks, timing requirements, or selector patterns.
 ## 2026-07-11: execute_javascript does NOT await Promises (async returns {})
 - **Context**: Ran an `async` IIFE in `execute_javascript` (a `fetch()` to grab a favicon) — the tool returned `{}` with no data.
 - **Learning**: The wrapper serializes the return value synchronously; an `async` function returns a Promise that serializes to `{}`. `await`/`.then` results never come back.
-- **Rule**: Keep `execute_javascript` synchronous. For network, either navigate directly to the resource URL and read it from the resulting document, or use a synchronous `XMLHttpRequest` (`xhr.open(..., false)`). Never rely on `async`/`await` inside `execute_javascript`.
+- **Rule** (pre-0.5.0 servers only): keep `execute_javascript` synchronous; navigate to the resource URL or use a synchronous `XMLHttpRequest`. On 0.5.0 and later, `await` works (see below).
 - **Superseded (server 0.5.0)**: `execute_javascript` awaits promises and accepts statement blocks with `return` (run as an async body), so `return await fetch(u).then(r => r.text())` works.
 
 ## 2026-07-11: site-wrapped Turnstile needs a manual form submit after bypass
 - **Context**: `bypass_cloudflare` returned "solved" and the widget showed a green "Success!", but the page stayed on "Verification required" — a site-custom challenge, not the standard CF interstitial.
 - **Learning**: Some sites embed Turnstile in their OWN `<form action="/verify_captcha" method="post">` with a populated hidden `<input name="cf-turnstile-response">` (the solved token, ~700 chars) and a manual "Verify" submit button. `bypass_cloudflare` only solves the checkbox; it does not submit the form, and `click(text="Verify")` may not trigger the submit.
-- **Rule**: After `bypass_cloudflare` shows "Success!" but the page doesn't advance, inspect `document.forms` for a challenge form with a filled `cf-turnstile-response`, then submit it directly: `execute_javascript("(function(){document.forms[0].submit();return true})()")`.
+- **Rule**: After `bypass_cloudflare` shows "Success!" but the page doesn't advance, inspect `document.forms` for a challenge form with a filled `cf-turnstile-response`, then submit it with `submit_form()` (runs the page's validation and handlers).
 
 ## 2026-07-11: static assets often bypass the JS challenge — fetch with curl
 - **Context**: Needed each site's favicon; some sites were Cloudflare-gated on the HTML.
