@@ -1,7 +1,7 @@
 ---
 name: browser-automation
-description: "Browser automation through the zendriver-mcp-next server (browser MCP tools) for browsing, scraping, form filling, testing and security auditing. Drives a real, headed Chrome that pages cannot easily tell is automated (trusted input, no DOM markers, helper code in an isolated world). 19 tools are listed directly (the browse loop plus search_tools, describe_tool, call_tool, batch, jobs); about 100 more (cookies, sessions, storage, dialogs, downloads, network logs and mocking, emulation, accessibility, tracing, Lighthouse, screencasts, Cloudflare, security audit) are one search_tools hop away. Every error has a code and a hint. Use when the user wants to browse, scrape, fill a form, automate a site or a login, check a page, take a screenshot, monitor network requests, run a security audit, get past a Cloudflare challenge, or interact with any web page. Examples: 'open this URL', 'scrape that page', 'fill out the form', 'take a screenshot', 'automate the login'."
-allowed-tools: mcp__browser__start_browser mcp__browser__stop_browser mcp__browser__get_browser_status mcp__browser__navigate mcp__browser__get_interaction_tree mcp__browser__click mcp__browser__type_text mcp__browser__press_key mcp__browser__get_text_content mcp__browser__screenshot mcp__browser__execute_javascript mcp__browser__wait_for_element mcp__browser__list_tabs mcp__browser__scroll mcp__browser__search_tools mcp__browser__describe_tool mcp__browser__call_tool mcp__browser__batch mcp__browser__jobs
+description: "Browser automation through the zendriver-mcp-next server (browser MCP tools) for browsing, scraping, form filling, testing and security auditing. Drives a real, headed Chrome that pages cannot easily tell is automated (trusted input, no DOM markers, helper code in an isolated world). 20 tools are listed directly (the browse loop, find_elements, plus search_tools, describe_tool, call_tool, batch, jobs); about 100 more (cookies, sessions, storage, dialogs, downloads, network logs and mocking, emulation, accessibility, tracing, Lighthouse, screencasts, Cloudflare, security audit) are one search_tools hop away. Every error has a code and a hint. Use when the user wants to browse, scrape, fill a form, automate a site or a login, check a page, take a screenshot, monitor network requests, run a security audit, get past a Cloudflare challenge, or interact with any web page. Examples: 'open this URL', 'scrape that page', 'fill out the form', 'take a screenshot', 'automate the login'."
+allowed-tools: mcp__browser__start_browser mcp__browser__stop_browser mcp__browser__get_browser_status mcp__browser__navigate mcp__browser__get_interaction_tree mcp__browser__find_elements mcp__browser__click mcp__browser__type_text mcp__browser__press_key mcp__browser__get_text_content mcp__browser__screenshot mcp__browser__execute_javascript mcp__browser__wait_for_element mcp__browser__list_tabs mcp__browser__scroll mcp__browser__search_tools mcp__browser__describe_tool mcp__browser__call_tool mcp__browser__batch mcp__browser__jobs
 metadata:
   author: coffeegrind123
   version: "2.0"
@@ -15,11 +15,11 @@ as `browser`, so its tools are `mcp__browser__*`. One headed Chrome per server p
 
 ## What you can call
 
-**Listed directly** (19):
+**Listed directly** (20):
 
 ```
 start_browser  stop_browser  get_browser_status  navigate  get_interaction_tree
-click  type_text  press_key  get_text_content  screenshot  execute_javascript
+find_elements  click  type_text  press_key  get_text_content  screenshot  execute_javascript
 wait_for_element  list_tabs  scroll
 search_tools  describe_tool  call_tool  batch  jobs
 ```
@@ -93,8 +93,9 @@ The first step on any page. Compact JSON of everything interactive, each with a 
 {"id": 14, "t": "link", "l": "Pricing", "r": "nav", "h": "/pricing"}
 ```
 
-`t` type (`btn link in sel chk rad tab mnu el`), `l` label, `r` region
-(`hdr nav main side ftr dlg`), `v` value, `ck` checked, `dis` disabled, `off` off-screen,
+`t` type (`btn link in sel chk rad tab mnu el`), `l` label, `r` region: the landmark it
+sits in (`hdr nav main side ftr form search dlg`, named when the page names it:
+`form:login`, `nav:Primary`; absent outside any landmark), `v` value, `ck` checked, `dis` disabled, `off` off-screen,
 `h` link target (only with `links=true`). Shadow DOM is included.
 
 - **Ids are stable for the element's life.** Re-walking keeps an element's id; a new
@@ -102,6 +103,15 @@ The first step on any page. Compact JSON of everything interactive, each with a 
   stale, and using one fails with `stale_id` instead of hitting a different element.
 - Pass an id as a string anywhere a selector goes: `click(selector="12")`.
 - The tree is truncated at `limit` (150); the result says so. Raise it on dense pages.
+- **Long page? Summarize, then narrow.** `view="summary"` gives one line per region, with
+  repeats folded (`41 Add to cart x30` is thirty buttons; 41 is the first) and `+N more`
+  counting what is not shown. Every id in it works. It is about a tenth of the list view.
+  `within="<rid>"` (the number after `@` on a region line) or `within="#results"` lists one
+  region in full.
+- **Know what you want? Describe it.** `find_elements(description="Sign in button in
+  header")` returns the best ids. Use the page's own words plus the kind and region, not
+  filler. `ranker="folate"` matches by meaning (needs the server's `folate` extra; seconds a
+  call).
 - Empty tree on an SPA? `wait_for_element` for something you expect, then re-walk;
   `find_buttons` / `find_inputs` use different detection.
 
@@ -121,12 +131,14 @@ Details: `reference/dom-walker.md`.
 | Upload | `upload_file(selector="input[type=file]", file_path="/abs/path")` |
 | Scroll | `scroll(direction="down", amount=800)`, `scroll_to_element(selector=...)` |
 | Shadow DOM | `click_shadow(selector="nes-button")`, `describe_shadow` |
+| Hover menu | `hover(selector="7")`, then `get_interaction_tree(only_changed=true)` for what opened |
+| Drag | `drag(source="#card", target="#done")`, or `drag(source="#knob", dx=120)` for sliders; a `draggable` element gets a real HTML5 drop with its data. Both points must be on screen |
 
 ## Reading
 
 | Need | Call |
 |---|---|
-| Visible text | `get_text_content()`, paged: `offset`, `max_chars`; result has `next_offset` |
+| Visible text | `get_text_content(selector="main")` for one region (cheaper than the whole page); `get_text_content()`, paged: `offset`, `max_chars`; result has `next_offset` |
 | HTML | `get_content()` (large; use sparingly) |
 | One element | `find_element`, `get_element_text`, `get_element_attribute` |
 | Data in one pass | `execute_javascript(script="return [...document.querySelectorAll('h2')].map(h => h.textContent)")`; `timeout=` (up to 115 s) for scripts that poll or retry |
