@@ -45,14 +45,28 @@ Only `id`, `t`, and `l` are always present. Other fields appear only when releva
 
 ## Region Codes
 
+`r` is the landmark the element sits in: the nearest one, except that an enclosing
+modal dialog always wins. There is no guess from position: an element outside every
+landmark has no `r`. Landmarks are found across shadow roots, from a control to the form
+around its custom element's host.
+
 | Code | Meaning | Detection |
 |------|---------|-----------|
-| `hdr` | Header | `<header>`, `[role="banner"]`, top < 80px |
+| `hdr` | Header | `<header>`, `[role="banner"]` |
 | `nav` | Navigation | `<nav>`, `[role="navigation"]` |
-| `main` | Main content | `<main>`, `[role="main"]`, largest content area |
-| `side` | Sidebar | `<aside>`, `[role="complementary"]`, left < 200px |
-| `ftr` | Footer | `<footer>`, `[role="contentinfo"]`, bottom > vh-80 |
-| `dlg` | Dialog/modal | `<dialog>`, `[role="dialog"]`, `[role="alertdialog"]` |
+| `main` | Main content | `<main>`, `[role="main"]` |
+| `side` | Sidebar | `<aside>`, `[role="complementary"]` |
+| `ftr` | Footer | `<footer>`, `[role="contentinfo"]` |
+| `form` | Form | `<form>`, `[role="form"]` |
+| `search` | Search | `[role="search"]` |
+| `dlg` | Dialog/modal | `<dialog open>`, `[role="dialog"]`, `[role="alertdialog"]`, `[aria-modal="true"]` |
+
+A named landmark adds its name after a colon (25 characters at most):
+`aria-label`, then `aria-labelledby`, then for a form its `name` or `id`. Examples:
+`nav:Primary`, `form:login`, `dlg:Cookie consent`.
+
+The walker also numbers each landmark element. The summary view shows it as `@rid`, and
+`within="<rid>"` walks only that region.
 
 ## Label Inference Priority
 
@@ -65,6 +79,11 @@ The walker infers a human-readable label using this priority:
 5. Visible text content (`innerText`, max 60 chars)
 6. `title` attribute
 7. `alt` attribute (images)
+8. A child's `aria-label`, `title` or `img alt` (a vote arrow `<div title="upvote">`, a logo
+   inside a link, an icon inside a button)
+
+Transparent elements (`opacity: 0`) are skipped, except a checkbox or radio whose own
+`<label>` is visible: that is how custom toggles are built, and a person clicks the label.
 
 Even unlabeled elements usually get a useful label through this chain.
 
