@@ -76,10 +76,11 @@ The walker infers a human-readable label using this priority:
 2. `aria-labelledby` → text of referenced element
 3. Associated `<label>` element (via `for` attribute)
 4. `placeholder` attribute
-5. Visible text content (`innerText`, max 60 chars)
+5. Visible text content (`innerText`) under 60 characters
 6. `title` attribute
 7. `alt` attribute (images)
-8. A child's `aria-label`, `title` or `img alt` (a vote arrow `<div title="upvote">`, a logo
+8. Longer visible text, cut at a word to 50 characters and ended with "…"
+9. A child's `aria-label`, `title` or `img alt` (a vote arrow `<div title="upvote">`, a logo
    inside a link, an icon inside a button)
 
 Transparent elements (`opacity: 0`) are skipped, except a checkbox or radio whose own
