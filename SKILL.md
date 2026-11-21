@@ -1,6 +1,6 @@
 ---
 name: browser-automation
-description: "Browser automation through the zendriver-mcp-next server (browser MCP tools) for browsing, scraping, form filling, testing and security auditing. Drives a real, headed Chrome that pages cannot easily tell is automated (trusted input, no DOM markers, helper code in an isolated world). 20 tools are listed directly (the browse loop, find_elements, plus search_tools, describe_tool, call_tool, batch, jobs); about 100 more (cookies, sessions, storage, dialogs, downloads, network logs and mocking, emulation, accessibility, tracing, Lighthouse, screencasts, Cloudflare, security audit) are one search_tools hop away. Every error has a code and a hint. Use when the user wants to browse, scrape, fill a form, automate a site or a login, check a page, take a screenshot, monitor network requests, run a security audit, get past a Cloudflare challenge, or interact with any web page. Examples: 'open this URL', 'scrape that page', 'fill out the form', 'take a screenshot', 'automate the login'."
+description: "Browser automation through the zendriver-mcp-next server (browser MCP tools) for browsing, scraping, form filling, testing and security auditing. Drives a real, headed Chrome that pages cannot easily tell is automated (trusted input, no DOM markers, helper code in an isolated world). About 100 tools beyond the 20 listed (cookies, sessions, storage, dialogs, downloads, network logs and mocking, emulation, accessibility, tracing, Lighthouse, screencasts, Cloudflare, security audit) are one search_tools hop away. Every error has a code and a hint. Use when the user wants to browse, scrape, fill a form, automate a site or a login, check a page, take a screenshot, monitor network requests, run a security audit, get past a Cloudflare challenge, or interact with any web page. Examples: 'open this URL', 'scrape that page', 'fill out the form', 'take a screenshot', 'automate the login'."
 allowed-tools: mcp__browser__start_browser mcp__browser__stop_browser mcp__browser__get_browser_status mcp__browser__navigate mcp__browser__get_interaction_tree mcp__browser__find_elements mcp__browser__click mcp__browser__type_text mcp__browser__press_key mcp__browser__get_text_content mcp__browser__screenshot mcp__browser__execute_javascript mcp__browser__wait_for_element mcp__browser__list_tabs mcp__browser__scroll mcp__browser__search_tools mcp__browser__describe_tool mcp__browser__call_tool mcp__browser__batch mcp__browser__jobs
 metadata:
   author: coffeegrind123
@@ -39,8 +39,6 @@ Below, an unlisted tool is written by its bare name; invoke it with `call_tool`.
 returns `unknown_tool`, the error's hint names the closest real tool.
 
 ## Lifecycle
-
-Read `LEARNINGS.md` first; it holds quirks earlier runs already hit.
 
 ```
 start_browser() → navigate(url) → [work] → stop_browser()
